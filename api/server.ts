@@ -25,28 +25,35 @@ async function readBody(req: { method?: string; on?: Function }): Promise<Uint8A
 }
 
 export default async function handler(req: any, res: any) {
-  const url = new URL(req.url ?? "/", getOrigin(req));
+  try {
+    const url = new URL(req.url ?? "/", getOrigin(req));
 
-  const headers = new Headers();
-  for (const [key, value] of Object.entries(req.headers ?? {})) {
-    if (value == null) continue;
-    if (Array.isArray(value)) headers.set(key, value.join(","));
-    else headers.set(key, String(value));
+    const headers = new Headers();
+    for (const [key, value] of Object.entries(req.headers ?? {})) {
+      if (value == null) continue;
+      if (Array.isArray(value)) headers.set(key, value.join(","));
+      else headers.set(key, String(value));
+    }
+
+    const body = await readBody(req);
+    const request = new Request(url, {
+      method: req.method,
+      headers,
+      body: body as any,
+    });
+
+    const response = await server.fetch(request, process.env, {});
+
+    res.statusCode = response.status;
+    response.headers.forEach((value, key) => res.setHeader(key, value));
+
+    const ab = await response.arrayBuffer();
+    res.end(Buffer.from(ab));
+  } catch (error) {
+    console.error("SSR function crashed", error);
+    res.statusCode = 500;
+    res.setHeader("content-type", "text/plain; charset=utf-8");
+    res.end("SSR function crashed. Check Vercel logs for stack trace.");
   }
-
-  const body = await readBody(req);
-  const request = new Request(url, {
-    method: req.method,
-    headers,
-    body: body as any,
-  });
-
-  const response = await server.fetch(request, {}, {});
-
-  res.statusCode = response.status;
-  response.headers.forEach((value, key) => res.setHeader(key, value));
-
-  const ab = await response.arrayBuffer();
-  res.end(Buffer.from(ab));
 }
 
