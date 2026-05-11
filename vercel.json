@@ -1,9 +1,14 @@
 {
   "version": 2,
-  "routes": [
+  "functions": {
+    "api/server.ts": {
+      "runtime": "edge"
+    }
+  },
+  "rewrites": [
     {
-      "src": "/(.*)",
-      "dest": "/api/server"
+      "source": "/(.*)",
+      "destination": "/api/server"
     }
   ]
 }
