@@ -1,5 +1,4 @@
 {
   "version": 2,
-  "framework": "vite",
-  "outputDirectory": "dist/client"
+  "outputDirectory": ".output"
 }
