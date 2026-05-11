@@ -1,4 +1,24 @@
-import server from "../src/server";
+type ServerEntry = {
+  fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
+};
+
+let serverEntryPromise: Promise<ServerEntry> | undefined;
+
+async function getServerEntry(): Promise<ServerEntry> {
+  if (!serverEntryPromise) {
+    // In Vercel Functions, `src/*` isn't available at runtime.
+    // Import the SSR bundle produced by `vite build` instead.
+    const serverUrl = new URL("../dist/server/server.js", import.meta.url);
+    serverEntryPromise = import(serverUrl.href).then((m) => {
+      const mod = m as { default?: ServerEntry };
+      if (!mod.default) {
+        throw new Error("SSR bundle did not export a default server entry");
+      }
+      return mod.default;
+    });
+  }
+  return serverEntryPromise;
+}
 
 function getOrigin(req: { headers?: Record<string, unknown> }): string {
   const host =
@@ -42,6 +62,7 @@ export default async function handler(req: any, res: any) {
       body: body as any,
     });
 
+    const server = await getServerEntry();
     const response = await server.fetch(request, process.env, {});
 
     res.statusCode = response.status;
